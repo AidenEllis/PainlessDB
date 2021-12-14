@@ -81,6 +81,19 @@ class Schema:
         return schema_data
 
     @staticmethod
+    def get_default(schema_val):
+        type_, def_val = str(schema_val).split('|')
+
+        if type_ == Schema.types.int:
+            return int(def_val)
+        elif type_ == Schema.types.float:
+            return float(def_val)
+        elif type_ == Schema.types.bool:
+            return bool(def_val)
+        else:
+            return def_val
+
+    @staticmethod
     def write(file_path: str, raw_schema_data: dict):
         with open(file_path, 'r+') as db_file:
             with open(file_path, 'r') as f:
@@ -118,10 +131,21 @@ class Schema:
                     schema_data_dict[group['name']] = []
 
                 for static in schema_data.statics:
-                    schema_data_dict[static['name']] = None
+                    schema_data_dict[static['name']] = Schema.get_default(static['datatype'])
+
+                print(schema_data.statics)
 
                 db_file.writelines(f"{Schema.SCHEMA_SPECIAL_KW}\n{raw_schema_data}\n{Schema.SCHEMA_SPECIAL_KW}\n"
                                    f"{Schema.DATA_SPECIAL_KW}\n{schema_data_dict}\n{Schema.DATA_SPECIAL_KW}\n")
+
+    @staticmethod
+    def WriteData(data: dict, file_path: str):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            db_data = file.readlines()
+            db_data[4] = str(data) + '\n'
+
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.writelines(db_data)
 
 
 schema132 = {
@@ -139,5 +163,4 @@ schema132 = {
     'Subscribers': Schema.types.int()
 }
 
-Schema.write('../../test.pldb', schema132)
-
+# Schema.write('../../test.pldb', schema132)
