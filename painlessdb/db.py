@@ -19,7 +19,15 @@ class PainlessDB:
         :param file_path: database.pldb file path.
         :return: database Data.
         """
-        data_from_file = linecache.getline(file_path, 5)
+
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            lineno = 5
+            data_from_file = ''
+
+            if 1 <= lineno <= len(lines):
+                data_from_file = lines[lineno - 1]
+
         if data_from_file:
             data_dict_from_file = ast.literal_eval(data_from_file)
 
@@ -50,5 +58,12 @@ schema = {
 }
 
 # print(json.dumps(Schema.build(schema), sort_keys=True, indent=2))
-Database = PainlessDB('../test.pldb', schema)
-Database.create('users', username='Darwin', password='asfd-39082498ysI&dfasdoa7')
+
+# import random
+#
+# database = PainlessDB('../test.pldb', schema)
+#
+#
+# for i in range(20):
+#     database.create('users', username=str(f'Bot-User-{i}'), password=str(random.randint(10000, 99999)))
+#     print(f"Successfully Created Bot-User-{i}.")

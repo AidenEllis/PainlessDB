@@ -140,13 +140,14 @@ class Schema:
 
     @staticmethod
     def WriteData(data: dict, file_path: str):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            db_data = file.readlines()
+        with open(file_path, 'r', encoding='utf-8') as file_:
+            db_data = file_.readlines()
             db_data[4] = str(data) + '\n'
+            file_.flush()
 
         with open(file_path, 'w', encoding='utf-8') as file:
             file.writelines(db_data)
-
+            file.flush()
 
 schema132 = {
     'users': {
