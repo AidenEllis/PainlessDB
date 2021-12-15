@@ -1,6 +1,6 @@
 import ast
-from core import Schema
-from utils import ObjectMapDict
+from .core import Schema
+from .utils import ObjectMapDict
 
 
 class PainlessDB:
@@ -47,10 +47,61 @@ class PainlessDB:
             file.writelines(db_data)
             file.flush()
 
+    def validate_fields(self, group: str, fields: dict):
+        fields_schema = None
+        all_fields = []
+
+        for ind, grp in enumerate(self.schema['groups']):
+            if grp['name'] == group:
+                fields_schema = self.schema['groups'][ind]['schema']
+
+        for f in fields_schema:
+            all_fields.append(f)
+
+        x = [a for a in fields]
+
+        default_fields = list(set(all_fields) ^ set(x))
+
+        for fkey, fval in fields.items():
+            if fkey in fields_schema:
+                dtype, dfval = str(fields_schema[fkey]).split('|')
+
+                if fkey in default_fields:
+                    fields[fkey] = dfval
+
+                if dtype == 'text':
+                    if type(fields[fkey]) is str:
+                        pass
+                    else:
+                        exit(f"Error: field '{fkey}' value type expected 'str' but got {type(fields[fkey])}'")
+
+                elif dtype == 'int':
+                    if type(fields[fkey]) is int:
+                        pass
+                    else:
+                        exit(f"Error: field '{fkey}' value type expected 'int' but got {type(fields[fkey])}'")
+
+                elif dtype == 'float':
+                    if type(fields[fkey]) is float:
+                        pass
+                    else:
+                        exit(f"Error: field '{fkey}' value type expected 'float' but got {type(fields[fkey])}'")
+
+                elif dtype == 'boolean':
+                    if type(fields[fkey]) is bool:
+                        pass
+                    else:
+                        exit(f"Error: field '{fkey}' value type expected 'bool' but got {type(fields[fkey])}'")
+
+            else:
+                print(f"Field key '{fkey}' doesn't match database '{group}' model's schema.")
+                quit()
+
     def create(self, group: str, fields):
         user_kwarg_dict = fields
-        user_kwarg_dict['id'] = self.get_id(group)
+        self.validate_fields(group, fields)
 
+        user_kwarg_dict['id'] = self.get_id(group)
         db_data = self.get_data_from_db_file(self.file_path)
         db_data[group].append(user_kwarg_dict)
         Schema.WriteData(data=db_data, file_path=self.file_path)
