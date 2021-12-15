@@ -83,6 +83,9 @@ class PainlessDB:
             if model_type == model_type_group:
                 data_result = [ObjectMapDict(**data) for data in data_result]
 
+        if not where:
+            return data_result
+
         data_result_multiple = []
         found_where = False
         if where:
@@ -166,11 +169,18 @@ class PainlessDB:
         content_data = self.get(group_name, where=where, advanced=True, multiple=False)
         model_type = content_data['model_type']
         data_result = content_data['data_result']
+        print("*" * 30, 'DELETE', "*" * 30)
+        print("Content Data: ", content_data)
 
         if model_type == "GROUP":
             data_from_db = self.get_data_from_db_file(self.file_path)
-            del data_from_db[group_name][int(data_result['id']) - 1]
+            for ind, content in enumerate(data_from_db[group_name]):
+                if content['id'] == data_result['id']:
+                    del data_from_db[group_name][ind]
+                    break
+
             Schema.WriteData(data_from_db, file_path=self.file_path)
+            print("*" * 30, 'DELETE', "*" * 30)
 
     @staticmethod
     def fields(**kwargs):
@@ -217,14 +227,19 @@ schema = {
 #
 database = PainlessDB('../test.pldb', schema)
 # database.create('users', fields=database.fields(username='Gumball', password="hfa!@#h236(*79afsd_+0=dsafyb-8f"))
-database.delete('users', where=database.where(username='Gumball Watterson'))
+# a = database.get('users')
+# import time
+a = database.get('users')
+for i in a:
+    database.delete('users', where=database.where(id=i['id']))
 # a = database.get('earnings', multiple=True)
 # print(a)
-# for i in range(1, 100):
+# for i in range(1, 1000):
 #     a = database.get('users', where=database.where(username=f"Bot-User-{i}"))
 #     print(a)
 
 # import random
-# for i in range(1, 101):
-#     database.create('users', username=str(f'Bot-User-{i}'), password=str(random.randint(10000, 99999)))
+# for i in range(1, 100):
+#     database.create('users', fields=database.fields(username=str(f'Bot-User-{i}'),
+#                                                     password=str(random.randint(10000, 99999))))
 #     print(f"Successfully Created Bot-User-{i}.")

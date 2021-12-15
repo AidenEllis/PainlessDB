@@ -149,10 +149,12 @@ class Schema:
             db_data = file_.readlines()
             db_data[4] = str(data) + '\n'
             file_.flush()
+            file_.close()
 
         with open(file_path, 'w', encoding='utf-8') as file:
             file.writelines(db_data)
             file.flush()
+            file.close()
 
 
 schema132 = {
