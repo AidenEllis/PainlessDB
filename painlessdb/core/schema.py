@@ -57,6 +57,7 @@ class Schema:
     types = SchemaTypes()
     SCHEMA_SPECIAL_KW = "------------------------------SCHEMA------------------------------"
     DATA_SPECIAL_KW = "------------------------------DATA------------------------------"
+    TRACK_SPECIAL_KW = "------------------------------TRACK------------------------------"
 
     def __init__(self):
         self.dataTypeList = ["text", "int", "datetime", "boolean", "blob", "float"]
@@ -134,10 +135,13 @@ class Schema:
                 for static in schema_data.statics:
                     schema_data_dict[static['name']] = Schema.get_default(static['datatype'])
 
-                print(schema_data.statics)
+                track_data_dict = {}
+                for group in schema_data.groups:
+                    track_data_dict[f"{group['name']}_id_track"] = 0
 
                 db_file.writelines(f"{Schema.SCHEMA_SPECIAL_KW}\n{raw_schema_data}\n{Schema.SCHEMA_SPECIAL_KW}\n"
-                                   f"{Schema.DATA_SPECIAL_KW}\n{schema_data_dict}\n{Schema.DATA_SPECIAL_KW}\n")
+                                   f"{Schema.DATA_SPECIAL_KW}\n{schema_data_dict}\n{Schema.DATA_SPECIAL_KW}\n"
+                                   f"{Schema.TRACK_SPECIAL_KW}\n{track_data_dict}\n{Schema.TRACK_SPECIAL_KW}\n")
 
     @staticmethod
     def WriteData(data: dict, file_path: str):
