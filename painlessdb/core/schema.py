@@ -127,6 +127,7 @@ class Schema:
             else:
                 schema_data = Schema.build(raw_schema_data)
                 schema_data_dict = {}
+
                 for group in schema_data.groups:
                     schema_data_dict[group['name']] = []
 
@@ -148,6 +149,7 @@ class Schema:
         with open(file_path, 'w', encoding='utf-8') as file:
             file.writelines(db_data)
             file.flush()
+
 
 schema132 = {
     'users': {

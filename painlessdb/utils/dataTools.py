@@ -18,7 +18,7 @@ class ObjectMapDict(dict):
                 self[k] = v
 
     def __getattr__(self, attr):
-        return self.get(attr, False)
+        return self.get(attr, None)
 
     def __setattr__(self, key, value):
         self.__setitem__(key, value)
@@ -33,3 +33,6 @@ class ObjectMapDict(dict):
     def __delitem__(self, key):
         super(ObjectMapDict, self).__delitem__(key)
         del self.__dict__[key]
+
+    def objectify(self):
+        print("OOOOOF")
