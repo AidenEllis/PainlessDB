@@ -155,21 +155,3 @@ class Schema:
             file.writelines(db_data)
             file.flush()
             file.close()
-
-
-schema132 = {
-    'users': {
-        'username': Schema.types.text(),
-        'password': Schema.types.text()
-    },
-
-    'dontations': {
-        'user': Schema.types.text(),
-        'amount': Schema.types.int()
-    },
-
-    'earnings': Schema.types.int(default=1),
-    'Subscribers': Schema.types.int()
-}
-
-# Schema.write('../../test.pldb', schema132)

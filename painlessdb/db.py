@@ -38,7 +38,7 @@ class PainlessDB:
         with open(self.file_path, 'r', encoding='utf-8') as file_:
             db_data = file_.readlines()
             track_dict_current = ast.literal_eval(db_data[7])
-            print(track_dict_current)
+
             track_dict_current[f"{group}_id_track"] = int(track_dict_current[f"{group}_id_track"]) + 1
             db_data[7] = str(track_dict_current) + "\n"
             file_.flush()
@@ -88,13 +88,12 @@ class PainlessDB:
 
         data_result_multiple = []
         found_where = False
+
         if where:
             if model_type == model_type_static:
                 exit(f"[PainlessDB]: Can't use 'where()', You can't search 'Static' data type.")
 
             if type(data_result) is list:
-                # where_data = None
-
                 for content in data_result:
                     for key, val in where.items():
                         try:
@@ -111,19 +110,19 @@ class PainlessDB:
                         data_result = content
                         break
 
-        adv_data = {}
-        # print(data_result)
-        if advanced:
-            adv_data['model_type'] = model_type
-            adv_data['data_result'] = data_result
-            if model_type == model_type_static:
-                adv_data['data_result'] = data_result
-            if not multiple and not found_where and model_type != model_type_static:
-                adv_data['data_result'] = None
-            if multiple and model_type != model_type_static:
-                adv_data['data_result'] = data_result_multiple
+        advanced_data = {}
 
-            return adv_data
+        if advanced:
+            advanced_data['model_type'] = model_type
+            advanced_data['data_result'] = data_result
+            if model_type == model_type_static:
+                advanced_data['data_result'] = data_result
+            if not multiple and not found_where and model_type != model_type_static:
+                advanced_data['data_result'] = None
+            if multiple and model_type != model_type_static:
+                advanced_data['data_result'] = data_result_multiple
+
+            return advanced_data
 
         if model_type == model_type_static:
             return data_result
@@ -169,8 +168,6 @@ class PainlessDB:
         content_data = self.get(group_name, where=where, advanced=True, multiple=False)
         model_type = content_data['model_type']
         data_result = content_data['data_result']
-        print("*" * 30, 'DELETE', "*" * 30)
-        print("Content Data: ", content_data)
 
         if model_type == "GROUP":
             data_from_db = self.get_data_from_db_file(self.file_path)
@@ -180,15 +177,6 @@ class PainlessDB:
                     break
 
             Schema.WriteData(data_from_db, file_path=self.file_path)
-            print("*" * 30, 'DELETE', "*" * 30)
-
-    @staticmethod
-    def fields(**kwargs):
-        return kwargs
-
-    @staticmethod
-    def where(**kwargs):
-        return kwargs
 
     def get_id(self, group_name: str):
         with open(self.file_path, 'r') as file:
@@ -205,41 +193,10 @@ class PainlessDB:
             id_ = int(data_dict_from_file[f"{group_name}_id_track"]) + 1
             return id_
 
+    @staticmethod
+    def fields(**kwargs):
+        return kwargs
 
-schema = {
-    'users': {
-        'username': Schema.types.text(),
-        'password': Schema.types.text()
-    },
-
-    'dontations': {
-        'user': Schema.types.text(),
-        'amount': Schema.types.int()
-    },
-
-    'earnings': Schema.types.int(),
-    'Subscribers': Schema.types.int()
-}
-
-# print(json.dumps(Schema.build(schema), sort_keys=True, indent=2))
-#
-# import random
-#
-database = PainlessDB('../test.pldb', schema)
-# database.create('users', fields=database.fields(username='Gumball', password="hfa!@#h236(*79afsd_+0=dsafyb-8f"))
-# a = database.get('users')
-# import time
-a = database.get('users')
-for i in a:
-    database.delete('users', where=database.where(id=i['id']))
-# a = database.get('earnings', multiple=True)
-# print(a)
-# for i in range(1, 1000):
-#     a = database.get('users', where=database.where(username=f"Bot-User-{i}"))
-#     print(a)
-
-# import random
-# for i in range(1, 100):
-#     database.create('users', fields=database.fields(username=str(f'Bot-User-{i}'),
-#                                                     password=str(random.randint(10000, 99999))))
-#     print(f"Successfully Created Bot-User-{i}.")
+    @staticmethod
+    def where(**kwargs):
+        return kwargs
