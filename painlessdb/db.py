@@ -34,15 +34,6 @@ class PainlessDB:
             return data_dict_from_file
         return {}
 
-    def create(self, group: str, fields):
-        user_kwarg_dict = fields
-        user_kwarg_dict['id'] = self.get_id(group)
-
-        db_data = self.get_data_from_db_file(self.file_path)
-        db_data[group].append(user_kwarg_dict)
-        Schema.WriteData(data=db_data, file_path=self.file_path)
-        self.increaceId(group)
-
     def increaceId(self, group: str):
         with open(self.file_path, 'r', encoding='utf-8') as file_:
             db_data = file_.readlines()
@@ -55,6 +46,15 @@ class PainlessDB:
         with open(self.file_path, 'w', encoding='utf-8') as file:
             file.writelines(db_data)
             file.flush()
+
+    def create(self, group: str, fields):
+        user_kwarg_dict = fields
+        user_kwarg_dict['id'] = self.get_id(group)
+
+        db_data = self.get_data_from_db_file(self.file_path)
+        db_data[group].append(user_kwarg_dict)
+        Schema.WriteData(data=db_data, file_path=self.file_path)
+        self.increaceId(group)
 
     def get(self, model_name: str, where=None, multiple: bool = True, advanced=False):
         data = self.get_data_from_db_file(self.file_path)
@@ -162,6 +162,16 @@ class PainlessDB:
             data_from_db[model_name] = value
             Schema.WriteData(data_from_db, file_path=self.file_path)
 
+    def delete(self, group_name: str, where=None):
+        content_data = self.get(group_name, where=where, advanced=True, multiple=False)
+        model_type = content_data['model_type']
+        data_result = content_data['data_result']
+
+        if model_type == "GROUP":
+            data_from_db = self.get_data_from_db_file(self.file_path)
+            del data_from_db[group_name][int(data_result['id']) - 1]
+            Schema.WriteData(data_from_db, file_path=self.file_path)
+
     @staticmethod
     def fields(**kwargs):
         return kwargs
@@ -207,7 +217,7 @@ schema = {
 #
 database = PainlessDB('../test.pldb', schema)
 # database.create('users', fields=database.fields(username='Gumball', password="hfa!@#h236(*79afsd_+0=dsafyb-8f"))
-database.update('earnings', value=102)
+database.delete('users', where=database.where(username='Gumball Watterson'))
 # a = database.get('earnings', multiple=True)
 # print(a)
 # for i in range(1, 100):
