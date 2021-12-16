@@ -1,6 +1,7 @@
 import ast
 from .core import Schema
 from .utils import ObjectMapDict
+from datetime import datetime
 
 
 class PainlessDB:
@@ -69,7 +70,7 @@ class PainlessDB:
                 if fkey in default_fields:
                     fields[fkey] = dfval
 
-                if dtype == 'text':
+                if dtype == 'text' or dtype == 'blob':
                     if type(fields[fkey]) is str:
                         pass
                     else:
@@ -93,14 +94,34 @@ class PainlessDB:
                     else:
                         exit(f"Error: field '{fkey}' value type expected 'bool' but got {type(fields[fkey])}'")
 
+                elif dtype == 'list':
+                    if type(fields[fkey]) is list:
+                        pass
+                    else:
+                        exit(f"Error: field '{fkey}' value type expected 'list' but got {type(fields[fkey])}'")
+
+                elif dtype == 'dict':
+                    if type(fields[fkey]) is dict:
+                        pass
+                    else:
+                        exit(f"Error: field '{fkey}' value type expected 'dict' but got {type(fields[fkey])}'")
+
+                elif dtype == "datetime":
+                    if type(fields[fkey]) is datetime:
+                        attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
+                        dt_value_list = [getattr(fields[fkey], attr) for attr in attrs]
+                        dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                        fields[fkey] = dt_str_value
+
             else:
                 print(f"Field key '{fkey}' doesn't match database '{group}' model's schema.")
                 quit()
 
+        # return fields
+
     def create(self, group: str, fields):
         user_kwarg_dict = fields
         self.validate_fields(group, fields)
-
         user_kwarg_dict['id'] = self.get_id(group)
         db_data = self.get_data_from_db_file(self.file_path)
         db_data[group].append(user_kwarg_dict)
@@ -133,6 +154,44 @@ class PainlessDB:
 
             if model_type == model_type_group:
                 data_result = [ObjectMapDict(**data) for data in data_result]
+
+        # print(data_result)
+
+        if model_type == model_type_group:
+            data_changes = []
+            i = None
+            field_schema = schema_data['groups']
+            for ind, f in enumerate(field_schema):
+                if f['name'] == model_name:
+                    i = ind
+                    break
+            field_schema = schema_data['groups'][i]['schema']
+            for fk, fv in field_schema.items():
+                ftype = str(fv).split("|")[0]
+                if ftype == 'datetime':
+                    data_changes.append((fk, ftype))
+
+            # print(data_changes)
+            if model_type == model_type_group:
+                # changed_data_result = list(data_result)
+                # print(changed_data_result)
+                v = []
+                for ind, data_ in enumerate(data_result):
+                    for f, t in data_changes:
+                        if f in data_:
+                            if t == 'datetime':
+                                print(f'debug 1: c {ind + 1}: ', data_result[i])
+                                dt_data_str = data_result[i][f]
+                                dt_values = str(dt_data_str).split('|')[0:-1]
+                                print('dt val: ', dt_values)
+                                dt_obj = datetime(*map(int, dt_values))
+                                data_result[i - ind - 1][f] = dt_obj
+                                # z = dict(data_result[i])
+                                # z[f] = dt_obj
+                                # v.append(z)
+
+            if model_type == model_type_static:
+                print(data_result)
 
         if not where:
             return data_result
