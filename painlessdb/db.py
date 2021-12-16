@@ -1,7 +1,9 @@
 import ast
 from .core import Schema, DataObject
-from .core.errors import *
+from .core.exceptions import *
 from datetime import datetime
+from ast import literal_eval
+from distutils.util import strtobool
 
 
 class PainlessDB:
@@ -66,12 +68,40 @@ class PainlessDB:
 
         default_fields = list(set(all_fields) ^ set(x))
 
+        for fkey in fields.keys():
+            if fkey not in list(fields_schema.keys()):
+                raise FieldKeyDoesntExist(field_key=fkey, group=group)
+
+        for df in default_fields:
+            dtype, dfval = str(fields_schema[df]).split('|')
+
+            if dtype == 'text':
+                fields[df] = str(dfval)
+
+            elif dtype == 'int':
+                fields[df] = int(dfval)
+
+            elif dtype == 'float':
+                fields[df] = float(dfval)
+
+            elif dtype == 'dict':
+                fields[df] = dict(literal_eval(dfval))
+
+            elif dtype == 'list':
+                fields[df] = list(literal_eval(dfval))
+
+            elif dtype == 'boolean':
+                fields[df] = bool(strtobool(dfval))
+
+            elif dtype == 'datetime':
+                fields[df] = None
+
         for fkey, fval in fields.items():
-            if fkey in fields_schema:
+            if fkey in list(fields_schema.keys()):
                 dtype, dfval = str(fields_schema[fkey]).split('|')
 
-                if fkey in default_fields:
-                    fields[fkey] = dfval
+                # if fkey in default_fields:
+                #     fields[fkey] = dfval
 
                 if dtype == 'text':
                     if type(fields[fkey]) is str:
@@ -110,14 +140,16 @@ class PainlessDB:
                         raise UnexpectedDataType(expected_type='dict', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == "datetime":
-                    if type(fields[fkey]) is datetime:
-                        attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
-                        dt_value_list = [getattr(fields[fkey], attr) for attr in attrs]
-                        dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
-                        fields[fkey] = dt_str_value
+                    if type(fields[fkey]) is datetime or type(fields[fkey]) is None:
+                        if type(fields[fkey]) is datetime:
+                            attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
+                            dt_value_list = [getattr(fields[fkey], attr) for attr in attrs]
+                            dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                            fields[fkey] = dt_str_value
                     else:
-                        raise UnexpectedDataType(expected_type='datetime.datetime', got_type=type(fields[fkey]),
-                                                 field_key=fkey)
+                        if (fields[fkey]) is not None:
+                            raise UnexpectedDataType(expected_type='datetime.datetime', got_type=type(fields[fkey]),
+                                                     field_key=fkey)
 
             else:
                 raise FieldKeyDoesntExist(field_key=fkey, group=group)
@@ -185,9 +217,11 @@ class PainlessDB:
                         if f in data_.data:
                             if t == 'datetime':
                                 dt_data_str = data_result[i].data[f]
-                                dt_values = str(dt_data_str).split('|')[0:-1]
-                                dt_obj = datetime(*map(int, dt_values))
-                                data_result[i - ind - 1].data[f] = dt_obj
+
+                                if dt_data_str:
+                                    dt_values = str(dt_data_str).split('|')[0:-1]
+                                    dt_obj = datetime(*map(int, dt_values))
+                                    data_result[i - ind - 1].data[f] = dt_obj
 
         if model_type == "STATIC":
             i_ = None

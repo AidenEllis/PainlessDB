@@ -5,7 +5,6 @@ class DataObject:
         self.data = data
         self.model_name = model_name
         self.database = database
-        self.value = None
 
     def update(self, fields=None, search_fail_silently=False, value=None):
         if not fields and not value:

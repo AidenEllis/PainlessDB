@@ -1,3 +1,4 @@
+import os
 import ast
 import linecache
 from painlessdb.utils import ObjectMapDict
@@ -22,7 +23,7 @@ class SchemaTypes:
         return f"boolean|{default}"
 
     @staticmethod
-    def typeText(default=None):
+    def typeText(default=''):
         return f"text|{default}"
 
     @staticmethod
@@ -90,7 +91,14 @@ class Schema:
             return def_val
 
     @staticmethod
-    def write(file_path: str, raw_schema_data: dict):
+    def write(file_path: str, raw_schema_data: dict, testing=False):
+        if str(file_path)[-5:] != '.pldb':
+            quit("[PainlessDB]: Database extention must be .pldb (eg. database.pldb)")
+
+        if not os.path.exists(file_path):
+            with open(file_path, 'w'):
+                pass
+
         with open(file_path, 'r+') as db_file:
             with open(file_path, 'r') as f:
                 get_all = f.readlines()
@@ -133,6 +141,14 @@ class Schema:
                 track_data_dict = {}
                 for group in schema_data.groups:
                     track_data_dict[f"{group['name']}_id_track"] = 0
+
+                if testing:
+                    test_data = {
+                        'raw_schema_data': raw_schema_data,
+                        'schema_data_dict': schema_data_dict,
+                        'track_data_dict': track_data_dict
+                    }
+                    return test_data
 
                 db_file.writelines(f"{Schema.SCHEMA_SPECIAL_KW}\n{raw_schema_data}\n{Schema.SCHEMA_SPECIAL_KW}\n"
                                    f"{Schema.DATA_SPECIAL_KW}\n{schema_data_dict}\n{Schema.DATA_SPECIAL_KW}\n"
