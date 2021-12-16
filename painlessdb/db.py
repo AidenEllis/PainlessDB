@@ -155,45 +155,54 @@ class PainlessDB:
             if model_type == model_type_group:
                 data_result = [ObjectMapDict(**data) for data in data_result]
 
-        # print(data_result)
-
         if model_type == model_type_group:
-            data_changes = []
             i = None
+            data_changes = []
             field_schema = schema_data['groups']
+
             for ind, f in enumerate(field_schema):
                 if f['name'] == model_name:
                     i = ind
                     break
+
             field_schema = schema_data['groups'][i]['schema']
             for fk, fv in field_schema.items():
                 ftype = str(fv).split("|")[0]
                 if ftype == 'datetime':
                     data_changes.append((fk, ftype))
 
-            # print(data_changes)
             if model_type == model_type_group:
-                # changed_data_result = list(data_result)
-                # print(changed_data_result)
-                v = []
                 for ind, data_ in enumerate(data_result):
                     for f, t in data_changes:
                         if f in data_:
                             if t == 'datetime':
-                                print(f'debug 1: c {ind + 1}: ', data_result[i])
                                 dt_data_str = data_result[i][f]
                                 dt_values = str(dt_data_str).split('|')[0:-1]
-                                print('dt val: ', dt_values)
                                 dt_obj = datetime(*map(int, dt_values))
                                 data_result[i - ind - 1][f] = dt_obj
-                                # z = dict(data_result[i])
-                                # z[f] = dt_obj
-                                # v.append(z)
 
-            if model_type == model_type_static:
-                print(data_result)
+        if model_type == "STATIC":
+            i_ = None
+            for ind, s in enumerate(schema_data['statics']):
+                if s['name'] == model_name:
+                    i_ = ind
+                    break
+
+            if schema_data['statics'][i_]['datatype'].split('|')[0] == "datetime":
+                dt_values = str(data_result).split('|')[0:-1]
+                dt_obj = datetime(*map(int, dt_values))
+                data_result = dt_obj
 
         if not where:
+            advanced_data = {}
+            if advanced:
+                advanced_data['model_type'] = model_type
+                advanced_data['data_result'] = data_result
+                if model_type == model_type_static:
+                    advanced_data['data_result'] = data_result
+
+                return advanced_data
+
             return data_result
 
         data_result_multiple = []
@@ -247,6 +256,7 @@ class PainlessDB:
 
     def update(self, model_name: str, fields=None, where=None, search_fail_silently=False, value=None):
         content_data = self.get(model_name, where=where, advanced=True, multiple=False)
+
         model_type = content_data['model_type']
         data_result = content_data['data_result']
         data_result_ = content_data['data_result']
@@ -270,6 +280,12 @@ class PainlessDB:
             Schema.WriteData(data_from_db, file_path=self.file_path)
 
         elif model_type == "STATIC":
+            if type(value) == datetime:
+                attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
+                dt_value_list = [getattr(value, attr) for attr in attrs]
+                dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                value = dt_str_value
+
             data_from_db = self.get_data_from_db_file(self.file_path)
             data_from_db[model_name] = value
             Schema.WriteData(data_from_db, file_path=self.file_path)
