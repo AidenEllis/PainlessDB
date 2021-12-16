@@ -8,7 +8,6 @@ class SchemaTypes:
         self.int = self.typeInt
         self.text = self.typeText
         self.bool = self.typeBool
-        self.blob = self.typeBlob
         self.float = self.typeFloat
         self.list = self.typeList
         self.dict = self.typeDict
@@ -29,10 +28,6 @@ class SchemaTypes:
     @staticmethod
     def typeDatetime(default=None):
         return f"datetime|{default}"
-
-    @staticmethod
-    def typeBlob(default=None):
-        return f"blob|{default}"
 
     @staticmethod
     def typeFloat(default=0.0):

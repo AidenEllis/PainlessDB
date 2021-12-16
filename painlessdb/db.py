@@ -1,5 +1,6 @@
 import ast
 from .core import Schema, DataObject
+from .core.errors import *
 from datetime import datetime
 
 
@@ -55,6 +56,9 @@ class PainlessDB:
             if grp['name'] == group:
                 fields_schema = self.schema['groups'][ind]['schema']
 
+        if not fields_schema:
+            raise ModelDoesntExist(model_name=group)
+
         for f in fields_schema:
             all_fields.append(f)
 
@@ -69,41 +73,41 @@ class PainlessDB:
                 if fkey in default_fields:
                     fields[fkey] = dfval
 
-                if dtype == 'text' or dtype == 'blob':
+                if dtype == 'text':
                     if type(fields[fkey]) is str:
                         pass
                     else:
-                        exit(f"Error: field '{fkey}' value type expected 'str' but got {type(fields[fkey])}'")
+                        raise UnexpectedDataType(expected_type='str', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == 'int':
                     if type(fields[fkey]) is int:
                         pass
                     else:
-                        exit(f"Error: field '{fkey}' value type expected 'int' but got {type(fields[fkey])}'")
+                        raise UnexpectedDataType(expected_type='int', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == 'float':
                     if type(fields[fkey]) is float:
                         pass
                     else:
-                        exit(f"Error: field '{fkey}' value type expected 'float' but got {type(fields[fkey])}'")
+                        raise UnexpectedDataType(expected_type='float', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == 'boolean':
                     if type(fields[fkey]) is bool:
                         pass
                     else:
-                        exit(f"Error: field '{fkey}' value type expected 'bool' but got {type(fields[fkey])}'")
+                        raise UnexpectedDataType(expected_type='bool', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == 'list':
                     if type(fields[fkey]) is list:
                         pass
                     else:
-                        exit(f"Error: field '{fkey}' value type expected 'list' but got {type(fields[fkey])}'")
+                        raise UnexpectedDataType(expected_type='list', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == 'dict':
                     if type(fields[fkey]) is dict:
                         pass
                     else:
-                        exit(f"Error: field '{fkey}' value type expected 'dict' but got {type(fields[fkey])}'")
+                        raise UnexpectedDataType(expected_type='dict', got_type=type(fields[fkey]), field_key=fkey)
 
                 elif dtype == "datetime":
                     if type(fields[fkey]) is datetime:
@@ -111,12 +115,12 @@ class PainlessDB:
                         dt_value_list = [getattr(fields[fkey], attr) for attr in attrs]
                         dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
                         fields[fkey] = dt_str_value
+                    else:
+                        raise UnexpectedDataType(expected_type='datetime.datetime', got_type=type(fields[fkey]),
+                                                 field_key=fkey)
 
             else:
-                print(f"Field key '{fkey}' doesn't match database '{group}' model's schema.")
-                quit()
-
-        # return fields
+                raise FieldKeyDoesntExist(field_key=fkey, group=group)
 
     def create(self, group: str, fields):
         user_kwarg_dict = fields
@@ -149,7 +153,7 @@ class PainlessDB:
             where = None
 
         if not model_type:
-            quit(f"Model '{model_name}' doesn't exit.")
+            raise ModelDoesntExist(model_name=model_name)
 
         if model_type:
             data_result = data[model_name]
@@ -217,7 +221,7 @@ class PainlessDB:
 
         if where:
             if model_type == model_type_static:
-                exit(f"[PainlessDB]: Can't use 'where()' for 'Static' data type.")
+                raise Exception(f"[PainlessDB]: Can't use 'where()' for 'Static' data type.")
 
             if type(data_result) is list:
                 for content in data_result:
@@ -284,12 +288,12 @@ class PainlessDB:
         data_result_ = dict(content_data['data_result'].data)
 
         if not fields and not value:
-            exit(f"[PainlessDB]: Content update Failed. Please provide fields in update(where=?)")
+            raise Exception(f"[PainlessDB]: Content update Failed. Please provide fields in update(where=?)")
 
         if data_result is None or data_result == []:
             if not search_fail_silently:
-                exit(f"[PainlessDB]: Content update Failed."
-                     f"Couldn't find the content specified with where({where}).")
+                raise Exception(f"[PainlessDB]: Content update Failed."
+                                f"Couldn't find the content specified with where({where}).")
 
         if model_type == "GROUP":
             for field_data in data_result.items():
