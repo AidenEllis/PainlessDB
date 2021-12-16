@@ -33,6 +33,3 @@ class ObjectMapDict(dict):
     def __delitem__(self, key):
         super(ObjectMapDict, self).__delitem__(key)
         del self.__dict__[key]
-
-    def objectify(self):
-        print("OOOOOF")

@@ -1,6 +1,5 @@
 import ast
-from .core import Schema
-from .utils import ObjectMapDict
+from .core import Schema, DataObject
 from datetime import datetime
 
 
@@ -128,7 +127,7 @@ class PainlessDB:
         Schema.WriteData(data=db_data, file_path=self.file_path)
         self.increaceId(group)
 
-    def get(self, model_name: str, where=None, multiple: bool = True, advanced=False):
+    def get(self, model_name: str, where=None, multiple: bool = True, advanced=False, bypass_static_dt_error=False):
         data = self.get_data_from_db_file(self.file_path)
         data_result = None
         schema_data = self.schema
@@ -146,14 +145,19 @@ class PainlessDB:
                 if static_model['name'] == model_name:
                     model_type = model_type_static
 
+        if bypass_static_dt_error and model_type == "STATIC":
+            where = None
+
         if not model_type:
             quit(f"Model '{model_name}' doesn't exit.")
 
         if model_type:
             data_result = data[model_name]
-
             if model_type == model_type_group:
-                data_result = [ObjectMapDict(**data) for data in data_result]
+                data_result = [DataObject(data=data, model_name=model_name, database=self) for data in data_result]
+            elif model_type == model_type_static:
+                d_ = {'value': data_result}
+                data_result = DataObject(data=d_, model_name=model_name, database=self)
 
         if model_type == model_type_group:
             i = None
@@ -174,12 +178,12 @@ class PainlessDB:
             if model_type == model_type_group:
                 for ind, data_ in enumerate(data_result):
                     for f, t in data_changes:
-                        if f in data_:
+                        if f in data_.data:
                             if t == 'datetime':
-                                dt_data_str = data_result[i][f]
+                                dt_data_str = data_result[i].data[f]
                                 dt_values = str(dt_data_str).split('|')[0:-1]
                                 dt_obj = datetime(*map(int, dt_values))
-                                data_result[i - ind - 1][f] = dt_obj
+                                data_result[i - ind - 1].data[f] = dt_obj
 
         if model_type == "STATIC":
             i_ = None
@@ -189,9 +193,10 @@ class PainlessDB:
                     break
 
             if schema_data['statics'][i_]['datatype'].split('|')[0] == "datetime":
-                dt_values = str(data_result).split('|')[0:-1]
-                dt_obj = datetime(*map(int, dt_values))
-                data_result = dt_obj
+                if data_result.value is not None:
+                    dt_values = str(data_result.value).split('|')[0:-1]
+                    dt_obj = datetime(*map(int, dt_values))
+                    data_result.value = dt_obj
 
         if not where:
             advanced_data = {}
@@ -202,6 +207,8 @@ class PainlessDB:
                     advanced_data['data_result'] = data_result
 
                 return advanced_data
+            if not multiple and len(data_result) > 1:
+                return data_result[0]
 
             return data_result
 
@@ -210,24 +217,31 @@ class PainlessDB:
 
         if where:
             if model_type == model_type_static:
-                exit(f"[PainlessDB]: Can't use 'where()', You can't search 'Static' data type.")
+                exit(f"[PainlessDB]: Can't use 'where()' for 'Static' data type.")
 
             if type(data_result) is list:
                 for content in data_result:
-                    for key, val in where.items():
+                    content_match = []
+                    for key, where_val in where.items():
                         try:
-                            if content[key] == val:
-                                if multiple:
-                                    data_result_multiple.append(content)
-                                found_where = True
-                            else:
-                                found_where = False
+                            if content.data[key] == where_val:
+                                content_match.append(True)
+
                         except KeyError:
                             raise KeyError(f"[PainlessDB]: Error while processing PainlessDB.where({where}), "
                                            f"Field '{key}' doesn't exist in Database schema.")
+
+                    if len(content_match) == len(where):
+                        found_where = True
+
+                    if found_where and model_type == model_type_group:
+                        data_result_multiple.append(content)
+
                     if found_where and not multiple:
                         data_result = content
                         break
+
+                    found_where = False
 
         advanced_data = {}
 
@@ -254,12 +268,20 @@ class PainlessDB:
 
         return data_result
 
-    def update(self, model_name: str, fields=None, where=None, search_fail_silently=False, value=None):
-        content_data = self.get(model_name, where=where, advanced=True, multiple=False)
+    def update(self, model_name: str, fields=None, where=None, search_fail_silently=False, value=None,
+               bypass_static_dt_error=False):
+        content_data = self.get(model_name, where=where, advanced=True, multiple=False,
+                                bypass_static_dt_error=bypass_static_dt_error)
+
+        if bypass_static_dt_error and content_data['model_type'] == "STATIC":
+            if value is None and fields:
+                value = fields['value']
+                fields = None
+                where = None
 
         model_type = content_data['model_type']
-        data_result = content_data['data_result']
-        data_result_ = content_data['data_result']
+        data_result = content_data['data_result'].data
+        data_result_ = dict(content_data['data_result'].data)
 
         if not fields and not value:
             exit(f"[PainlessDB]: Content update Failed. Please provide fields in update(where=?)")
@@ -275,8 +297,30 @@ class PainlessDB:
                     data_result[field_data[0]] = fields[field_data[0]]
 
         if model_type == "GROUP":
+            for fkey, fval in fields.items():
+                if type(fval) == datetime:
+                    attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
+                    dt_value_list = [getattr(fval, attr) for attr in attrs]
+                    dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                    fields[fkey] = dt_str_value
+
+            for fk, fv in data_result.items():
+                if type(fv) == datetime:
+                    attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
+                    dt_value_list = [getattr(fv, attr) for attr in attrs]
+                    dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                    data_result[fk] = dt_str_value
+                    data_result_[fk] = dt_str_value
+
             data_from_db = self.get_data_from_db_file(self.file_path)
-            data_from_db[model_name][int(data_result_['id']) - 1] = data_result
+            ind = None
+
+            for ind_, data in enumerate(data_from_db[model_name]):
+                if data['id'] == data_result_['id']:
+                    ind = ind_
+                    break
+
+            data_from_db[model_name][ind] = data_result
             Schema.WriteData(data_from_db, file_path=self.file_path)
 
         elif model_type == "STATIC":
@@ -293,7 +337,7 @@ class PainlessDB:
     def delete(self, group_name: str, where=None):
         content_data = self.get(group_name, where=where, advanced=True, multiple=False)
         model_type = content_data['model_type']
-        data_result = content_data['data_result']
+        data_result = dict(content_data['data_result'].data)
 
         if model_type == "GROUP":
             data_from_db = self.get_data_from_db_file(self.file_path)
