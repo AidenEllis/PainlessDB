@@ -3,7 +3,7 @@
 
 
 <p align="center">
-  <strong>PainlessDB - Taking Your Pain to the moon 🚀</strong>
+  <strong>PainlessDB - Taking Your Pain away to the moon 🚀</strong>
 </p>
 
 <h3 align="center">
@@ -43,6 +43,24 @@ Read The [Docs](https://github.com/AidenEllis/PainlessDB/tree/main/docs) To quic
 
 With our continuous updates you will keep getting new features and bug fixes.
 
+## How to install?
+`via pip (recommended) :`
+```commandline
+pip install PainlessDB
+```
+
+or
+
+`via pip + github:`
+```commandline
+pip install git+https://github.com/AidenEllis/PainlessDB.git
+```
+
+or
+
+```
+Download this repo and use it.
+```
 
 ## Contributions
 
