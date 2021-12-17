@@ -31,7 +31,7 @@ class DataObject:
 
     def __str__(self):
         if not self.debug:
-            return f"DataObject({str(list(self.data.keys()))[1:-1]})"
+            return f"DataObject({self.model_name})"
         else:
             return f"Obj: {str(self.data)}"
 
