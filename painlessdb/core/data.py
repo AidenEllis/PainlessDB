@@ -1,10 +1,11 @@
 class DataObject:
-    debug = True
+    debug = False
 
-    def __init__(self, data: dict, model_name: str, database):
+    def __init__(self, data: dict, model_name: str, database, metadata: dict = None):
         self.data = data
         self.model_name = model_name
         self.database = database
+        self.__metadata__ = metadata
 
     def update(self, fields=None, search_fail_silently=False, value=None):
         if not fields and not value:
@@ -23,7 +24,7 @@ class DataObject:
                                      search_fail_silently=search_fail_silently, value=value)
 
     def delete(self):
-        self.database.delete(group_name=self.model_name, where=self.data)
+        self.database.delete(group_name=self.model_name, metadata=self.Metadata)
 
     def __getattr__(self, attr):
         return self.data[attr]
@@ -33,3 +34,10 @@ class DataObject:
             return f"DataObject({str(list(self.data.keys()))[1:-1]})"
         else:
             return f"Obj: {str(self.data)}"
+
+    @property
+    def Metadata(self):
+        if self.data.get('id', None):
+            self.__metadata__['id'] = self.data['id']
+
+        return self.__metadata__

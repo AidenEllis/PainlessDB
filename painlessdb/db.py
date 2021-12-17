@@ -1,9 +1,11 @@
 import ast
-from .core import Schema, DataObject
-from .core.exceptions import *
-from datetime import datetime
+import ujson
 from ast import literal_eval
+from datetime import datetime
+from .core.exceptions import *
 from distutils.util import strtobool
+from .core import Schema, DataObject
+from .utils.converter import datetimeToStr, singleQuoteToDoubleQuote
 
 
 class PainlessDB:
@@ -32,8 +34,9 @@ class PainlessDB:
                 data_from_file = lines[lineno - 1]
 
         if data_from_file:
-            data_dict_from_file = ast.literal_eval(data_from_file)
-
+            fixed_data = singleQuoteToDoubleQuote(
+                data_from_file.replace("True", "true").replace("None", "null").replace("False", "false"))
+            data_dict_from_file = ujson.loads(fixed_data)
             return data_dict_from_file
         return {}
 
@@ -100,9 +103,6 @@ class PainlessDB:
             if fkey in list(fields_schema.keys()):
                 dtype, dfval = str(fields_schema[fkey]).split('|')
 
-                # if fkey in default_fields:
-                #     fields[fkey] = dfval
-
                 if dtype == 'text':
                     if type(fields[fkey]) is str:
                         pass
@@ -142,9 +142,7 @@ class PainlessDB:
                 elif dtype == "datetime":
                     if type(fields[fkey]) is datetime or type(fields[fkey]) is None:
                         if type(fields[fkey]) is datetime:
-                            attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
-                            dt_value_list = [getattr(fields[fkey], attr) for attr in attrs]
-                            dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                            dt_str_value = datetimeToStr(fields[fkey])
                             fields[fkey] = dt_str_value
                     else:
                         if (fields[fkey]) is not None:
@@ -189,11 +187,15 @@ class PainlessDB:
 
         if model_type:
             data_result = data[model_name]
+            metadata = {'model_type': model_type, 'model_name': model_name}
+
             if model_type == model_type_group:
-                data_result = [DataObject(data=data, model_name=model_name, database=self) for data in data_result]
+                data_result = [DataObject(data=data, model_name=model_name, database=self, metadata=metadata) for data
+                               in data_result]
+
             elif model_type == model_type_static:
                 d_ = {'value': data_result}
-                data_result = DataObject(data=d_, model_name=model_name, database=self)
+                data_result = DataObject(data=d_, model_name=model_name, database=self, metadata=metadata)
 
         if model_type == model_type_group:
             i = None
@@ -337,16 +339,12 @@ class PainlessDB:
         if model_type == "GROUP":
             for fkey, fval in fields.items():
                 if type(fval) == datetime:
-                    attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
-                    dt_value_list = [getattr(fval, attr) for attr in attrs]
-                    dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                    dt_str_value = datetimeToStr(fval)
                     fields[fkey] = dt_str_value
 
             for fk, fv in data_result.items():
                 if type(fv) == datetime:
-                    attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
-                    dt_value_list = [getattr(fv, attr) for attr in attrs]
-                    dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                    dt_str_value = datetimeToStr(fv)
                     data_result[fk] = dt_str_value
                     data_result_[fk] = dt_str_value
 
@@ -363,24 +361,30 @@ class PainlessDB:
 
         elif model_type == "STATIC":
             if type(value) == datetime:
-                attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
-                dt_value_list = [getattr(value, attr) for attr in attrs]
-                dt_str_value = "".join(str(x) + '|' for x in dt_value_list)
+                dt_str_value = datetimeToStr(value)
                 value = dt_str_value
 
             data_from_db = self.get_data_from_db_file(self.file_path)
             data_from_db[model_name] = value
             Schema.WriteData(data_from_db, file_path=self.file_path)
 
-    def delete(self, group_name: str, where=None):
-        content_data = self.get(group_name, where=where, advanced=True, multiple=False)
-        model_type = content_data['model_type']
-        data_result = dict(content_data['data_result'].data)
+    def delete(self, group_name: str, where=None, metadata=None):
+        model_type = None
+        content_id = None
+
+        if where and not metadata:
+            content_data = self.get(group_name, where=where, advanced=True, multiple=False)
+            model_type = content_data['model_type']
+            content_id = dict(content_data['data_result'].data)['id']
+
+        elif metadata and not where:
+            model_type = metadata['model_type']
+            content_id = metadata['id']
 
         if model_type == "GROUP":
             data_from_db = self.get_data_from_db_file(self.file_path)
             for ind, content in enumerate(data_from_db[group_name]):
-                if content['id'] == data_result['id']:
+                if content['id'] == content_id:
                     del data_from_db[group_name][ind]
                     break
 
