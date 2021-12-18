@@ -1,6 +1,7 @@
 import os
 import ast
 import linecache
+from distutils.util import strtobool
 from painlessdb.utils import ObjectMapDict
 
 
@@ -79,16 +80,31 @@ class Schema:
 
     @staticmethod
     def get_default(schema_val):
-        type_, def_val = str(schema_val).split('|')
+        dtype, dfval = str(schema_val).split('|')
 
-        if type_ == Schema.types.int:
-            return int(def_val)
-        elif type_ == Schema.types.float:
-            return float(def_val)
-        elif type_ == Schema.types.bool:
-            return bool(def_val)
+        if dtype == 'text':
+            return str(dfval)
+
+        elif dtype == 'int':
+            return int(dfval)
+
+        elif dtype == 'float':
+            return float(dfval)
+
+        elif dtype == 'dict':
+            return dict(ast.literal_eval(dfval))
+
+        elif dtype == 'list':
+            return list(ast.literal_eval(dfval))
+
+        elif dtype == 'boolean':
+            return bool(strtobool(dfval))
+
+        elif dtype == 'datetime':
+            return None
+
         else:
-            return def_val
+            return None
 
     @staticmethod
     def write(file_path: str, raw_schema_data: dict, testing=False):

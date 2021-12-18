@@ -151,10 +151,10 @@ class PainlessDB:
 
             else:
                 raise FieldKeyDoesntExist(field_key=fkey, group=group)
+        return fields
 
     def create(self, group: str, fields):
-        user_kwarg_dict = fields
-        self.validate_fields(group, fields)
+        user_kwarg_dict = self.validate_fields(group, fields)
         user_kwarg_dict['id'] = self.get_id(group)
         db_data = self.get_data_from_db_file(self.file_path)
         db_data[group].append(user_kwarg_dict)

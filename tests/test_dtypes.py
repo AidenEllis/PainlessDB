@@ -26,7 +26,7 @@ class TestDatabaseDataTypes(unittest.TestCase):
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
 
-    def test_type_str(self):
+    def test_type_returns(self):
         database = PainlessDB(file_path_name=self.db_path, schema_data=self.schema_data)
 
         database.create('TestModels', fields=database.fields(
