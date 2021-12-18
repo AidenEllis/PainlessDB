@@ -67,7 +67,7 @@ class TestDatabaseSchema(unittest.TestCase):
                 "donations": {"username": "text|", "amount": "int|0"},
                 "UserCount": "int|0",
             },
-            "schema_data_dict": {"users": [], "donations": [], "UserCount": "0"},
+            "schema_data_dict": {"users": [], "donations": [], "UserCount": 0},
             "track_data_dict": {"users_id_track": 0, "donations_id_track": 0},
         }
 

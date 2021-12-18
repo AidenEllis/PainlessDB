@@ -53,54 +53,68 @@ class PainlessDB:
             file.writelines(db_data)
             file.flush()
 
-    def validate_fields(self, group: str, fields: dict):
+    def validate_fields(self, model_name: str, fields: dict, model_type=None, update=False):
         fields_schema = None
         all_fields = []
+        static_field_name = None
 
-        for ind, grp in enumerate(self.schema['groups']):
-            if grp['name'] == group:
-                fields_schema = self.schema['groups'][ind]['schema']
+        if model_type == "GROUP":
+            for ind, grp in enumerate(self.schema['groups']):
+                if grp['name'] == model_name:
+                    fields_schema = self.schema['groups'][ind]['schema']
+
+        elif model_type == "STATIC":
+            for ind, stat in enumerate(self.schema['statics']):
+                if stat['name'] == model_name:
+                    static_field_name = self.schema['statics'][ind]['name']
+                    fields_schema = {static_field_name: self.schema['statics'][ind]['datatype']}
+                    fields = {self.schema['statics'][ind]['name']: fields['value']}
 
         if not fields_schema:
-            raise ModelDoesntExist(model_name=group)
+            raise ModelDoesntExist(model_name=model_name)
 
-        for f in fields_schema:
-            all_fields.append(f)
+        if model_type == "GROUP" and not update:
+            for f in fields_schema:
+                all_fields.append(f)
 
-        x = [a for a in fields]
+            x = [a for a in fields]
 
-        default_fields = list(set(all_fields) ^ set(x))
+            default_fields = list(set(all_fields) ^ set(x))
 
-        for fkey in fields.keys():
-            if fkey not in list(fields_schema.keys()):
-                raise FieldKeyDoesntExist(field_key=fkey, group=group)
+            for fkey in fields.keys():
+                if fkey not in list(fields_schema.keys()) and fkey != 'id':
+                    raise FieldKeyDoesntExist(field_key=fkey, group=model_name)
 
-        for df in default_fields:
-            dtype, dfval = str(fields_schema[df]).split('|')
+            for df in default_fields:
+                if df == 'id':
+                    continue
+                dtype, dfval = str(fields_schema[df]).split('|')
 
-            if dtype == 'text':
-                fields[df] = str(dfval)
+                if dtype == 'text':
+                    fields[df] = str(dfval)
 
-            elif dtype == 'int':
-                fields[df] = int(dfval)
+                elif dtype == 'int':
+                    fields[df] = int(dfval)
 
-            elif dtype == 'float':
-                fields[df] = float(dfval)
+                elif dtype == 'float':
+                    fields[df] = float(dfval)
 
-            elif dtype == 'dict':
-                fields[df] = dict(literal_eval(dfval))
+                elif dtype == 'dict':
+                    fields[df] = dict(literal_eval(dfval))
 
-            elif dtype == 'list':
-                fields[df] = list(literal_eval(dfval))
+                elif dtype == 'list':
+                    fields[df] = list(literal_eval(dfval))
 
-            elif dtype == 'boolean':
-                fields[df] = bool(strtobool(dfval))
+                elif dtype == 'boolean':
+                    fields[df] = bool(strtobool(dfval))
 
-            elif dtype == 'datetime':
-                fields[df] = None
+                elif dtype == 'datetime':
+                    fields[df] = None
 
         for fkey, fval in fields.items():
-            if fkey in list(fields_schema.keys()):
+            if fkey in list(fields_schema.keys()) or fkey == 'id':
+                if fkey == "id":
+                    continue
                 dtype, dfval = str(fields_schema[fkey]).split('|')
 
                 if dtype == 'text':
@@ -150,11 +164,15 @@ class PainlessDB:
                                                      field_key=fkey)
 
             else:
-                raise FieldKeyDoesntExist(field_key=fkey, group=group)
+                raise FieldKeyDoesntExist(field_key=fkey, group=model_name)
+
+        if model_type == "STATIC":
+            return fields[static_field_name]
+
         return fields
 
     def create(self, group: str, fields):
-        user_kwarg_dict = self.validate_fields(group, fields)
+        user_kwarg_dict = self.validate_fields(group, fields, model_type="GROUP")
         user_kwarg_dict['id'] = self.get_id(group)
         db_data = self.get_data_from_db_file(self.file_path)
         db_data[group].append(user_kwarg_dict)
@@ -313,6 +331,13 @@ class PainlessDB:
         content_data = self.get(model_name, where=where, advanced=True, multiple=False,
                                 bypass_static_dt_error=bypass_static_dt_error)
 
+        if content_data['model_type'] == "GROUP":
+            fields = self.validate_fields(model_name, fields, model_type=content_data['model_type'], update=True)
+
+        elif content_data['model_type'] == "STATIC":
+            value = self.validate_fields(model_name, {'value': value}, model_type=content_data['model_type'],
+                                         update=True)
+
         if bypass_static_dt_error and content_data['model_type'] == "STATIC":
             if value is None and fields:
                 value = fields['value']
@@ -325,6 +350,9 @@ class PainlessDB:
 
         if not fields and not value:
             raise Exception(f"[PainlessDB]: Content update Failed. Please provide fields in update(where=?)")
+
+        if model_name and fields and content_data['model_type'] == "GROUP":
+            pass
 
         if data_result is None or data_result == []:
             if not search_fail_silently:

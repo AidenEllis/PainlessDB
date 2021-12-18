@@ -84,7 +84,7 @@ class TestDatabase(unittest.TestCase):
                         fields=database.fields(username='Gumball'))
         data_4 = database.get('users', where=database.where(username='Gumball'), multiple=False)
         self.assertEqual(data_4.username, 'Gumball')
-
+        print("Debug 3: ", database.get('users', where=database.where(username='Gumball', password='newgumpass0')))
         database.update('users', where=database.where(username='Gumball', password='newgumpass0'),
                         fields=database.fields(username='Gumball Watterson', password='herewegoagain18'))
         data_5 = database.get('users', where=database.where(username='Gumball Watterson'), multiple=False)

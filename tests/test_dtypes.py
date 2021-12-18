@@ -48,8 +48,6 @@ class TestDatabaseDataTypes(unittest.TestCase):
             field_7=dt_obj,
         ))
 
-        database.update('static_1', value=128)
-
         data = database.get('TestModels', where=database.where(id=1), multiple=False)
 
         self.assertEqual(data.field_1, 'This is a text')

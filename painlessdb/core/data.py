@@ -18,7 +18,8 @@ class DataObject:
 
         else:
             if value and not fields:
-                self.database.update(model_name=self.model_name, search_fail_silently=search_fail_silently, value=value)
+                self.database.update(model_name=self.model_name, search_fail_silently=search_fail_silently,
+                                     value=value)
             else:
                 self.database.update(model_name=self.model_name, fields=fields, where=self.data,
                                      search_fail_silently=search_fail_silently, value=value)
