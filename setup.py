@@ -7,7 +7,7 @@ BASE_DIR = os.path.dirname(__file__)
 
 PACKAGE_NAME = "painlessdb"
 
-SHORT_DESCRIPTION = "A Python Database Module."
+SHORT_DESCRIPTION = "A Painless Simple Way To Create Schema and Do Database Operations Quickly In Python."
 
 LONG_DESCRIPTION_FILE_PATH = "README.md"
 
@@ -15,7 +15,7 @@ URL = "https://github.com/AidenEllis/PainlessDB"
 
 PROJECT_URLS = {
     'Github': 'https://github.com/AidenEllis/PainlessDB',
-    'Documentation': 'https://github.com/AidenEllis/PainlessDB/blob/main/docs',
+    'Documentation': 'https://github.com/AidenEllis/PainlessDB/tree/main/docs',
     'Issue tracker': 'https://github.com/AidenEllis/PainlessDB/issues'
 }
 
@@ -28,10 +28,9 @@ KEYWORDS = [
     "painlessdb",
     "db",
     "database",
-    "sqlite",
-    "Painless DB",
-    "Aiden Ellis",
-    "SqLite"
+    "PainlessDB",
+    "AidenEllis",
+    "pldb"
 ]
 
 AUTHOR = "Aiden Ellis"
