@@ -62,6 +62,9 @@ or
 Download this repo and use it.
 ```
 
+## 🥞 Wanna Support me?
+I am a high schooler doing these Stuffs and I Love it! 🍰 Star ⭐ the repo to encourage me to do more Open source stuff!
+
 ## Contributions
 
 PainlessDB is open to contributions.
