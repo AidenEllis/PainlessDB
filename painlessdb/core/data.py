@@ -1,3 +1,6 @@
+import copy
+
+
 class DataObject:
     debug = False
 
@@ -9,11 +12,12 @@ class DataObject:
 
     def update(self, fields=None, search_fail_silently=False, value=None):
         if not fields and not value:
-            new_data = dict(self.data)
+            new_data = copy.deepcopy(self.data)
             for fkey, fval in new_data.items():
                 new_data[fkey] = getattr(self, fkey)
 
-            self.database.update(model_name=self.model_name, fields=new_data, where=self.data,
+            obj_id = self.Metadata['id']
+            self.database.update(model_name=self.model_name, fields=new_data, where={'id': obj_id},
                                  search_fail_silently=search_fail_silently, value=value, bypass_static_dt_error=True)
 
         else:
